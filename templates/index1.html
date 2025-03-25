@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diabetic Retinopathy Disease Classification</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-image: linear-gradient(rgba(0,0,0,0.65),rgba(0,0,0,0.65)), url('static/eye2.webp');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .container-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            width: 500px;
+            color: black;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .content-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        #preview {
+            max-width: 300px;
+            height: auto;
+            display: none;
+            margin-top: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        .hidden {
+            display: none;
+        }
+        .result-paragraph {
+            background: rgba(255, 255, 255, 0.9);
+            color: black;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 400px;
+            text-align: left;
+            font-weight: 400;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <br><br>
+    <h1 class="text-center">Diabetic Retinopathy Disease</h1>
+    <br>
+
+    <center>
+        <div class="content-wrapper">
+            <div class="container-box">
+                <h2>Upload an Image</h2>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <input type="file" name="file" id="file" accept="image/*" onchange="previewImage(event)" required>
+                    <br><br>
+                    <button class="btn btn-success" type="button" onclick="predictDisease()">Predict</button>
+                </form>
+                <br>
+                <h3 class="hidden" id="previewTitle">Preview:</h3>
+                <img id="preview">
+            </div>
+
+            <div id="predictionResult" class="hidden result-paragraph">
+                <h2>Prediction Results</h2>
+                <p><strong>Classification:</strong> <span id="predictedDisease"></span></p>
+                <p id="treatmentContent"></p>
+            </div>
+        </div>
+    </center>
+
+    <script>
+        const drDescriptions = {
+            'Mild_DR': `
+                <strong>Mild nonproliferative diabetic retinopathy detected.</strong><br>
+                Regular eye exams recommended every 6-12 months.<br>
+                Maintain stable blood sugar and blood pressure levels.<br>
+                Lifestyle modifications can help slow progression.<br>
+            `,
+            'No_DR': `
+                <strong>No signs of diabetic retinopathy detected.</strong><br>
+                Maintain a healthy diet and monitor blood sugar regularly.<br>
+                Routine eye check-ups every year are advised.<br>
+            `,
+            'Severe_DR': `
+                <strong>Severe nonproliferative diabetic retinopathy detected.</strong><br>
+                Immediate consultation with an ophthalmologist is advised.<br>
+                Possible treatment: Laser therapy or anti-VEGF injections.<br>
+                Strict control of blood sugar, blood pressure, and cholesterol is critical.<br>
+            `
+        };
+
+        let selectedImage = null;
+
+        function previewImage(event) {
+            let file = event.target.files[0];
+            if (!file) return;
+
+            let reader = new FileReader();
+            reader.onload = function () {
+                document.getElementById("preview").src = reader.result;
+                document.getElementById("preview").style.display = "block";
+                document.getElementById("previewTitle").classList.remove("hidden");
+                selectedImage = reader.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function predictDisease() {
+            if (!selectedImage) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ image: selectedImage })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert("Error: " + data.error);
+                    return;
+                }
+                document.getElementById("predictedDisease").innerText = data.predicted_class;
+                document.getElementById("treatmentContent").innerHTML = drDescriptions[data.predicted_class] || "No information available.";
+                document.getElementById("predictionResult").classList.remove("hidden");
+            })
+            .catch(error => console.error("Error:", error));
+        }
+    </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
